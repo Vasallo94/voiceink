@@ -3,7 +3,7 @@
 A macOS menu bar utility that records voice, transcribes it with Google Gemini (cleaning up filler words), and copies clean text to your clipboard.
 
 ## Features
-- **Global Hotkey**: Double press `Control` quickly to start/stop recording (Required: Accessibility permissions)
+- **Global Hotkey**: `Ctrl+Shift+S` by default (configurable via `VOICE2CLIP_CARBON_HOTKEY`)
 - **Silence Detection**: Auto-stops after 3 seconds of silence
 - **Smart Transcription**: Removes "ehm", "uh" & formats instructions using **Gemini 2.5 Flash**
 - **History**: Access last 50 transcriptions from the menu bar
@@ -14,12 +14,13 @@ This installs the app to `/Applications` and configures it for daily use:
 
 ```bash
 # 1. Set your API key
-echo "GOOGLE_API_KEY=your_key_here" > .env
+cp .env.example .env
+# edit .env and set GOOGLE_API_KEY
 
 # 2. Run the installer
 ./install.sh
 ```
-*Follow the on-screen instructions to grant Accessibility & Login Item permissions.*
+*Follow the on-screen instructions to grant Microphone (and optionally Accessibility) permissions.*
 
 ## Development
 ```bash
@@ -54,11 +55,11 @@ uv run pre-commit run --all-files
 - `VOICE2CLIP_AUDIO_RETENTION=delete|keep` (`delete` is default)
 
 ## macOS Permissions
-- **Accessibility**: required for global hotkey capture.
 - **Microphone**: required to record audio for transcription.
+- **Accessibility**: optional fallback if Carbon hotkey registration is unavailable.
 
 ## Tech Stack
-`rumps` · `pyaudio` · `google-genai` · `pynput` · `pyinstaller`
+`PySide6` · `pyaudio` · `google-genai` · `pyperclip` · `pyinstaller`
 
 ## Release Checklist
 ```bash
@@ -74,6 +75,6 @@ open dist/Voice2Clip.app
 ```
 
 - Verify microphone permission prompt appears on first recording.
-- Verify accessibility permission is granted for the global hotkey.
+- Verify the configured global hotkey toggles recording.
 - Verify start/stop/transcribe/copy flow works in the packaged app.
 
