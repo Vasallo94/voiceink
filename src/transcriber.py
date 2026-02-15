@@ -1,74 +1,96 @@
-import asyncio
+import logging
 import os
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-load_dotenv()
+load_dotenv()  # Load from current directory (dev)
+load_dotenv(os.path.expanduser("~/.voice2clip.env"))  # Load from home (prod/app)
+
+logger = logging.getLogger(__name__)
+
+TRANSCRIPTION_PROMPT = """\
+Eres Voice2Clip, un asistente experto en convertir "pensamientos hablados" en texto limpio y natural.
+
+TU MISIÓN:
+Transformar el audio en exactamente lo que el usuario PRETENDE escribir, eliminando el ruido del proceso de pensar.
+
+SI ESCUCHAS UNA INSTRUCCIÓN O PETICIÓN (para una IA, un email, código):
+- Escribe la instrucción directa y clara.
+- Elimina todo el "meta-lenguaje" (ej: "mira, quiero que hagas...", "a ver si puedes...", "bueno, lo que quiero es...").
+- NO estructures excesivamente (evita listas con guiones si no son necesarias).
+- Mantén un tono natural, fluido y directo.
+
+SI ESCUCHAS UN DICTADO O NOTA:
+- Transcribe con fidelidad pero con limpieza.
+- Quita repeticiones, tartamudeos y muletillas ("eh", "mmm", "o sea").
+
+REGLAS DE ORO:
+1. NUNCA respondas al usuario. SOLO devuelve el texto transformado.
+2. Tu salida va directa al Portapapeles. NO pongas comillas ni introducciones.
+3. Respeta el idioma del audio.
+"""
+
 
 class GeminiTranscriber:
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the Gemini client."""
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
+
         if not self.api_key:
-             # Try to load from system environment if not in .env
-            self.api_key = os.environ.get("GOOGLE_API_KEY")
-            
-        if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY not found. Please set it in .env or environment variables.")
+            raise ValueError(
+                "GOOGLE_API_KEY not found. Set it in .env or environment variables."
+            )
 
         self.client = genai.Client(api_key=self.api_key)
-        # Using Gemini 3 Flash Preview as requested and confirmed available
-        self.model_name = "gemini-3-flash-preview" 
+        self.model_name = "gemini-2.5-flash"
 
     def transcribe(self, audio_path: str) -> str:
         """
         Transcribe audio file using Gemini API.
-        
-        This method is synchronous wrapper because rumps runs on the main thread,
-        but we want to avoid blocking it for too long.
-        Ideally run this in a separate thread.
+
+        Args:
+            audio_path: Path to the WAV file to transcribe.
+
+        Returns:
+            Transcribed and cleaned text, or an error message.
         """
         if not os.path.exists(audio_path):
             return "Error: Audio file not found."
 
         try:
-            # Upload the file (for larger files, but works for small ones too)
-            # For efficiency with small clips, we could pass bytes directly if supported by this SDK version
-            # But the 'upload' method is robust.
-            
-            # Read file bytes
             with open(audio_path, "rb") as f:
                 audio_bytes = f.read()
-                
-            prompt = """
-            Eres un asistente experto en redacción. Tu tarea es transcribir el siguiente audio.
-            Instrucciones CRÍTICAS:
-            1. Transcribe EXACTAMENTE lo que se dice, pero ELIMINANDO todas las muletillas, dudas y rellenos (ej: "eh", "mmm", "este...", "o sea", "bueno pues").
-            2. Corrige la puntuación y gramática para que el texto sea fluido y profesional.
-            3. NO resumas ni cambies el significado. Solo limpia la "suciedad" del lenguaje hablado.
-            4. Devuelve SOLAMENTE el texto transcrito. Nada de "Aquí tienes la transcripción:" ni comillas envolventes.
-            """
 
+            file_size_kb = len(audio_bytes) / 1024
+            logger.info("Transcribing audio: %.1f KB", file_size_kb)
+
+            # Use system_instruction for better adherence to "Prompt Engineer" role
             response = self.client.models.generate_content(
                 model=self.model_name,
+                config=types.GenerateContentConfig(
+                    system_instruction=TRANSCRIPTION_PROMPT,
+                    temperature=0.3,  # Lower temperature for more deterministic/focused output
+                ),
                 contents=[
                     types.Content(
                         parts=[
-                            types.Part(text=prompt),
                             types.Part(
                                 inline_data=types.Blob(
                                     mime_type="audio/wav",
-                                    data=audio_bytes
+                                    data=audio_bytes,
                                 )
-                            )
+                            ),
                         ]
                     )
-                ]
+                ],
             )
-            
-            return response.text.strip()
+
+            result = response.text.strip()
+            logger.info("Transcription complete: %d chars", len(result))
+            return result
 
         except Exception as e:
-            return f"Error during transcription: {str(e)}"
+            logger.error("Transcription error: %s", e)
+            return f"Error during transcription: {e}"
