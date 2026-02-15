@@ -1,6 +1,6 @@
 from collections import deque
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QWidget
 
@@ -40,5 +40,5 @@ class WaveformWidget(QWidget):
             color = QColor("#007AFF") if value < 0.7 else QColor("#30D158")
             painter.setBrush(color)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(x, y, bar_w, bar_h, 2, 2)
+            painter.drawRoundedRect(QRectF(x, y, bar_w, bar_h), 2.0, 2.0)
             x += bar_w + 2
