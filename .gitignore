@@ -11,12 +11,20 @@ wheels/
 
 # Secrets
 .env
+.env.*
+!.env.example
+
+# Local assistant/config
+.gemini/
 
 # Temp files
 *.wav
+*.log
 .DS_Store
 icon.iconset/
 
 # Tool caches
 .ruff_cache/
+.pytest_cache/
+.mypy_cache/
 .pyright/
