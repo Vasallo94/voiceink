@@ -42,8 +42,13 @@ class AudioRecorder:
         self._lock = threading.Lock()
         self._recording_thread: Optional[threading.Thread] = None
         self._stop_callback: Optional[Callable[[], None]] = None
+        self._level_callback: Optional[Callable[[float], None]] = None
 
-    def start(self, stop_callback: Optional[Callable[[], None]] = None) -> None:
+    def start(
+        self,
+        stop_callback: Optional[Callable[[], None]] = None,
+        level_callback: Optional[Callable[[float], None]] = None,
+    ) -> None:
         """Start recording asynchronously."""
         with self._lock:
             if self.is_recording:
@@ -53,6 +58,7 @@ class AudioRecorder:
             self.frames = []
             self.is_recording = True
             self._stop_callback = stop_callback
+            self._level_callback = level_callback
 
             self.stream = self.p.open(
                 format=self.format,
@@ -63,9 +69,7 @@ class AudioRecorder:
             )
 
         # Start the recording loop in a background thread
-        self._recording_thread = threading.Thread(
-            target=self._record_loop, daemon=True
-        )
+        self._recording_thread = threading.Thread(target=self._record_loop, daemon=True)
         self._recording_thread.start()
 
     def _record_loop(self) -> None:
@@ -81,14 +85,17 @@ class AudioRecorder:
 
                     # Silence Detection
                     rms = self._get_rms(data)
+                    if self._level_callback:
+                        try:
+                            self._level_callback(rms)
+                        except Exception as e:
+                            logger.debug("Error in level_callback: %s", e)
                     if rms < self.silence_threshold:
                         if silence_start_time is None:
                             silence_start_time = time.time()
                         elif time.time() - silence_start_time > self.silence_timeout:
-                            logger.info(
-                                "Silence detected for %ds. Stopping.", self.silence_timeout
-                            )
-                            # We don't call self.stop() here anymore, 
+                            logger.info("Silence detected for %ds. Stopping.", self.silence_timeout)
+                            # We don't call self.stop() here anymore,
                             # we just break and let the finally block handle it
                             break
                     else:
@@ -100,6 +107,7 @@ class AudioRecorder:
         finally:
             with self._lock:
                 self.is_recording = False
+                self._level_callback = None
                 if self.stream:
                     try:
                         self.stream.stop_stream()
@@ -107,8 +115,8 @@ class AudioRecorder:
                     except Exception as e:
                         logger.error(f"Error closing stream in _record_loop: {e}")
                     self.stream = None
-            
-            # Ensure callback happens outside the lock if possible, 
+
+            # Ensure callback happens outside the lock if possible,
             # but inside the end of thread
             if self._stop_callback:
                 try:
@@ -145,7 +153,7 @@ class AudioRecorder:
                     wf.setsampwidth(self.p.get_sample_size(self.format))
                     wf.setframerate(self.rate)
                     wf.writeframes(b"".join(self.frames))
-                
+
                 # Clear frames after successful save to prevent double-saving or reuse
                 self.frames = []
                 logger.info("Saved to %s", self.filename)

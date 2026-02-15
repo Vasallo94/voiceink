@@ -10,12 +10,39 @@ dependencies = [
     "pynput>=1.8.1",
     "pyobjc-framework-quartz>=12.1",
     "pyperclip>=1.11.0",
+    "pyside6>=6.10.2",
     "python-dotenv>=1.2.1",
-    "rumps>=0.4.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.2.0",
     "pyinstaller>=6.19.0",
+    "pyright>=1.1.405",
     "pytest>=9.0.2",
+    "ruff>=0.12.10",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = [
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.pyright]
+include = ["src", "tests"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+pythonVersion = "3.12"
+reportMissingTypeStubs = false
+reportAttributeAccessIssue = false
+executionEnvironments = [
+    { root = ".", extraPaths = ["src"] },
 ]

@@ -3,9 +3,9 @@
 A macOS menu bar utility that records voice, transcribes it with Google Gemini (cleaning up filler words), and copies clean text to your clipboard.
 
 ## Features
-- **Global Hotkey**: `Cmd+Option+R` (⌘+⌥+R) to start/stop recording (Required: Accessibility permissions)
+- **Global Hotkey**: Double press `Control` quickly to start/stop recording (Required: Accessibility permissions)
 - **Silence Detection**: Auto-stops after 3 seconds of silence
-- **Smart Transcription**: Removes "ehm", "uh" & formats instructions using **Gemini 2.5 Flash Lite**
+- **Smart Transcription**: Removes "ehm", "uh" & formats instructions using **Gemini 2.5 Flash**
 - **History**: Access last 50 transcriptions from the menu bar
 - **Feedback**: Native system sounds for start/stop/error
 
@@ -25,6 +25,20 @@ echo "GOOGLE_API_KEY=your_key_here" > .env
 ```bash
 # Run from source
 ./run.sh
+
+# Install dev tooling
+uv sync --group dev
+
+# Run quality checks
+uv run ruff check .
+uv run pyright
+uv run pytest -q
+
+# Enable git hooks
+uv run pre-commit install
+
+# Run hooks manually
+uv run pre-commit run --all-files
 ```
 
 ## Requirements
@@ -32,6 +46,34 @@ echo "GOOGLE_API_KEY=your_key_here" > .env
 - Google AI Studio API Key ([get one here](https://aistudio.google.com/app/apikey))
 - Python 3.12+ (managed by `uv`)
 
+## Privacy & Retention
+- `VOICE2CLIP_PERSIST_MODE=normal|memory` (`memory` stores temp audio in `/tmp`)
+- `VOICE2CLIP_HISTORY_ENABLED=true|false`
+- `VOICE2CLIP_HISTORY_MAX_ITEMS=50` (default)
+- `VOICE2CLIP_HISTORY_RETENTION_DAYS=0` (`0` disables day-based pruning)
+- `VOICE2CLIP_AUDIO_RETENTION=delete|keep` (`delete` is default)
+
+## macOS Permissions
+- **Accessibility**: required for global hotkey capture.
+- **Microphone**: required to record audio for transcription.
+
 ## Tech Stack
 `rumps` · `pyaudio` · `google-genai` · `pynput` · `pyinstaller`
+
+## Release Checklist
+```bash
+# 1) Run quality gates
+uv run pre-commit run --all-files
+uv run pytest -q
+
+# 2) Build app (single source of truth: Voice2Clip.spec)
+uv run python build_app.py
+
+# 3) Smoke-test app bundle
+open dist/Voice2Clip.app
+```
+
+- Verify microphone permission prompt appears on first recording.
+- Verify accessibility permission is granted for the global hotkey.
+- Verify start/stop/transcribe/copy flow works in the packaged app.
 

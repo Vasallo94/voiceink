@@ -16,3 +16,7 @@ wheels/
 *.wav
 .DS_Store
 icon.iconset/
+
+# Tool caches
+.ruff_cache/
+.pyright/

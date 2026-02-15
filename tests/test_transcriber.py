@@ -9,18 +9,18 @@ from transcriber import TRANSCRIPTION_PROMPT, GeminiTranscriber
 
 class TestTranscriptionPrompt:
     def test_includes_language_detection(self):
-        assert "DETECTA automáticamente el idioma" in TRANSCRIPTION_PROMPT
+        assert "Respeta el idioma del audio" in TRANSCRIPTION_PROMPT
 
     def test_includes_spanish_fillers(self):
-        assert "este..." in TRANSCRIPTION_PROMPT
+        assert "eh" in TRANSCRIPTION_PROMPT
         assert "o sea" in TRANSCRIPTION_PROMPT
 
     def test_includes_english_fillers(self):
-        assert "like" in TRANSCRIPTION_PROMPT
-        assert "you know" in TRANSCRIPTION_PROMPT
+        assert "meta-lenguaje" in TRANSCRIPTION_PROMPT
+        assert "Si NO pide estructura explícita" in TRANSCRIPTION_PROMPT
 
     def test_no_meta_commentary(self):
-        assert "Aquí tienes la transcripción" in TRANSCRIPTION_PROMPT
+        assert "NUNCA respondas al usuario" in TRANSCRIPTION_PROMPT
 
 
 class TestGeminiTranscriber:
@@ -33,7 +33,7 @@ class TestGeminiTranscriber:
     def test_init_with_explicit_key(self, mock_client):
         t = GeminiTranscriber(api_key="test-key-123")
         assert t.api_key == "test-key-123"
-        assert t.model_name == "gemini-3-flash-preview"
+        assert t.model_name == "gemini-2.5-flash"
 
     @patch("transcriber.genai.Client")
     def test_transcribe_missing_file(self, mock_client):

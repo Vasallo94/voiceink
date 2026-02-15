@@ -3,9 +3,10 @@
 import json
 import os
 import tempfile
+import time
 
 import pytest
-from history import get_recent, load_history, save_entry
+from history import get_file_version, get_recent, load_history, save_entry
 
 
 @pytest.fixture
@@ -82,3 +83,17 @@ class TestGetRecent:
     def test_returns_empty_for_missing_file(self, tmp_path):
         recent = get_recent(5, str(tmp_path / "nope.json"))
         assert recent == []
+
+
+class TestHistoryVersion:
+    def test_returns_zero_for_missing_file(self, tmp_path):
+        version = get_file_version(str(tmp_path / "missing.json"))
+        assert version == (0, 0)
+
+    def test_changes_after_write(self, history_file):
+        before = get_file_version(history_file)
+        save_entry("test", 1.0, history_file)
+        time.sleep(0.001)
+        save_entry("test2", 1.0, history_file)
+        after = get_file_version(history_file)
+        assert before != after
