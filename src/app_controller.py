@@ -44,12 +44,14 @@ class AppController(QObject):
 
         self.recorder = AudioRecorder(
             filename=recording_target,
-            silence_threshold=800,
-            silence_timeout=3,
+            silence_threshold=500,
+            silence_timeout=5,
+            input_device_name=None,
         )
         self.settings = settings_store.load_settings()
         self.recorder.silence_timeout = self.settings.silence_timeout
         self.recorder.silence_threshold = self.settings.silence_threshold
+        self.recorder.set_input_device_name(self.settings.input_device_name)
 
         self.transcriber: GeminiTranscriber | None
         try:
@@ -107,10 +109,12 @@ class AppController(QObject):
             settings_store.AppSettings(
                 silence_timeout=self.recorder.silence_timeout,
                 silence_threshold=self.recorder.silence_threshold,
+                input_device_name=self.recorder.input_device_name,
             )
         )
         self.recorder.silence_timeout = self.settings.silence_timeout
         self.recorder.silence_threshold = self.settings.silence_threshold
+        self.recorder.set_input_device_name(self.settings.input_device_name)
 
     def set_silence_threshold(self, value: int) -> None:
         self.recorder.silence_threshold = value
@@ -118,10 +122,28 @@ class AppController(QObject):
             settings_store.AppSettings(
                 silence_timeout=self.recorder.silence_timeout,
                 silence_threshold=self.recorder.silence_threshold,
+                input_device_name=self.recorder.input_device_name,
             )
         )
         self.recorder.silence_timeout = self.settings.silence_timeout
         self.recorder.silence_threshold = self.settings.silence_threshold
+        self.recorder.set_input_device_name(self.settings.input_device_name)
+
+    def get_input_devices(self) -> list[str]:
+        return self.recorder.get_input_devices()
+
+    def set_input_device(self, device_name: str | None) -> None:
+        self.recorder.set_input_device_name(device_name)
+        self.settings = settings_store.save_settings(
+            settings_store.AppSettings(
+                silence_timeout=self.recorder.silence_timeout,
+                silence_threshold=self.recorder.silence_threshold,
+                input_device_name=self.recorder.input_device_name,
+            )
+        )
+        self.recorder.silence_timeout = self.settings.silence_timeout
+        self.recorder.silence_threshold = self.settings.silence_threshold
+        self.recorder.set_input_device_name(self.settings.input_device_name)
 
     def is_hotkey_trusted(self) -> bool:
         return self.hotkey_handler.is_operational()

@@ -95,14 +95,23 @@ class Voice2ClipApp:
             settings.silence_timeout,
             settings.silence_threshold,
         )
+        self.popover.settings_view.set_input_devices(
+            self.controller.get_input_devices(),
+            settings.input_device_name,
+        )
         self.popover.settings_view.set_hotkey_label(self.controller.get_active_hotkey_label())
         self.popover.settings_view.set_hotkey_status(self.controller.is_hotkey_trusted())
 
-    def _on_settings_changed(self, timeout_s: int, threshold: int) -> None:
+    def _on_settings_changed(self, timeout_s: int, threshold: int, input_device_name: str) -> None:
         self.controller.set_silence_timeout(timeout_s)
         self.controller.set_silence_threshold(threshold)
+        self.controller.set_input_device(input_device_name or None)
         current = self.controller.get_settings()
         self.popover.settings_view.set_values(current.silence_timeout, current.silence_threshold)
+        self.popover.settings_view.set_input_devices(
+            self.controller.get_input_devices(),
+            current.input_device_name,
+        )
         self.tray.show_message("Voice2Clip", "Settings", "Audio settings updated")
 
     def _open_accessibility_settings(self) -> None:

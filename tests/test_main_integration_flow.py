@@ -21,8 +21,15 @@ class DummyRecorder:
         self.start = Mock()
         self.stop = Mock(return_value="/tmp/voice2clip_test.wav")
         self.cleanup = Mock()
-        self.silence_timeout = 3
-        self.silence_threshold = 800
+        self.silence_timeout = 5
+        self.silence_threshold = 500
+        self.input_device_name = None
+
+    def set_input_device_name(self, device_name):
+        self.input_device_name = device_name
+
+    def get_input_devices(self):
+        return ["InstaLink"]
 
 
 class DummyTranscriber:

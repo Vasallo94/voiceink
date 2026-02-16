@@ -10,8 +10,9 @@ DEFAULT_SETTINGS_PATH = os.path.expanduser("~/.voice2clip_settings.json")
 
 @dataclass(slots=True)
 class AppSettings:
-    silence_timeout: int = 3
-    silence_threshold: int = 800
+    silence_timeout: int = 5
+    silence_threshold: int = 500
+    input_device_name: str | None = None
 
 
 def _clamp_timeout(value: int) -> int:
@@ -23,9 +24,16 @@ def _clamp_threshold(value: int) -> int:
 
 
 def sanitize(settings: AppSettings) -> AppSettings:
+    cleaned_device_name = settings.input_device_name
+    if isinstance(cleaned_device_name, str):
+        cleaned_device_name = cleaned_device_name.strip() or None
+    elif cleaned_device_name is not None:
+        cleaned_device_name = None
+
     return AppSettings(
         silence_timeout=_clamp_timeout(settings.silence_timeout),
         silence_threshold=_clamp_threshold(settings.silence_threshold),
+        input_device_name=cleaned_device_name,
     )
 
 
@@ -43,13 +51,15 @@ def load_settings(path: str = DEFAULT_SETTINGS_PATH) -> AppSettings:
     if not isinstance(payload, dict):
         return AppSettings()
 
-    timeout = payload.get("silence_timeout", 3)
-    threshold = payload.get("silence_threshold", 800)
+    timeout = payload.get("silence_timeout", 5)
+    threshold = payload.get("silence_threshold", 500)
+    input_device_name = payload.get("input_device_name")
 
     try:
         settings = AppSettings(
             silence_timeout=int(timeout),
             silence_threshold=int(threshold),
+            input_device_name=input_device_name,
         )
     except (TypeError, ValueError):
         return AppSettings()

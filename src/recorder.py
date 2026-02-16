@@ -17,6 +17,7 @@ class AudioRecorder:
         filename: str = "temp_recording.wav",
         silence_threshold: int = 1000,
         silence_timeout: int = 5,
+        input_device_name: str | None = None,
     ):
         """
         Initialize the AudioRecorder.
@@ -29,6 +30,7 @@ class AudioRecorder:
         self.filename = filename
         self.silence_threshold = silence_threshold
         self.silence_timeout = silence_timeout
+        self.input_device_name = input_device_name
 
         self.chunk = 1024
         self.format = pyaudio.paInt16
@@ -66,6 +68,7 @@ class AudioRecorder:
                 rate=self.rate,
                 input=True,
                 frames_per_buffer=self.chunk,
+                input_device_index=self._resolve_input_device_index(),
             )
 
         # Start the recording loop in a background thread
@@ -138,6 +141,75 @@ class AudioRecorder:
 
         self._save_file()
         return self.filename
+
+    def get_input_devices(self) -> list[str]:
+        """Return available input device names."""
+        names: list[str] = []
+        try:
+            count = self.p.get_device_count()
+            for index in range(count):
+                info = self.p.get_device_info_by_index(index)
+                if int(info.get("maxInputChannels", 0)) > 0:
+                    device_name = str(info.get("name", "")).strip()
+                    if device_name:
+                        names.append(device_name)
+        except Exception as e:
+            logger.error("Error listing input devices: %s", e)
+            return []
+
+        unique_names: list[str] = []
+        seen: set[str] = set()
+        for name in names:
+            if name in seen:
+                continue
+            seen.add(name)
+            unique_names.append(name)
+        return unique_names
+
+    def set_input_device_name(self, device_name: str | None) -> None:
+        """Set preferred input device name. None means system default."""
+        if isinstance(device_name, str):
+            self.input_device_name = device_name.strip() or None
+            return
+        self.input_device_name = None
+
+    def _resolve_input_device_index(self) -> int | None:
+        """Resolve selected device name to a PyAudio input device index."""
+        desired = (self.input_device_name or "").strip()
+        if not desired:
+            return None
+
+        desired_lower = desired.lower()
+        exact_match: int | None = None
+        fuzzy_match: int | None = None
+
+        try:
+            count = self.p.get_device_count()
+            for index in range(count):
+                info = self.p.get_device_info_by_index(index)
+                if int(info.get("maxInputChannels", 0)) <= 0:
+                    continue
+
+                device_name = str(info.get("name", "")).strip()
+                if not device_name:
+                    continue
+
+                device_lower = device_name.lower()
+                if device_lower == desired_lower:
+                    exact_match = index
+                    break
+                if desired_lower in device_lower and fuzzy_match is None:
+                    fuzzy_match = index
+        except Exception as e:
+            logger.error("Error resolving input device '%s': %s", desired, e)
+            return None
+
+        selected = exact_match if exact_match is not None else fuzzy_match
+        if selected is None:
+            logger.warning("Input device '%s' not found. Falling back to default.", desired)
+            return None
+
+        return selected
 
     def _save_file(self) -> None:
         """Saves recorded frames to a WAV file."""

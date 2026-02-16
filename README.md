@@ -4,7 +4,7 @@ A macOS menu bar utility that records voice, transcribes it with Google Gemini (
 
 ## Features
 - **Global Hotkey**: `Ctrl+Shift+S` by default (configurable via `VOICE2CLIP_CARBON_HOTKEY`)
-- **Silence Detection**: Auto-stops after 3 seconds of silence
+- **Silence Detection**: Auto-stops after 5 seconds of silence
 - **Smart Transcription**: Removes "ehm", "uh" & formats instructions using **Gemini 2.5 Flash**
 - **History**: Access last 50 transcriptions from the menu bar
 - **Feedback**: Native system sounds for start/stop/error
