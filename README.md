@@ -1,80 +1,113 @@
-# Voice2Clip 🎙️
+# VoiceInk
 
-A macOS menu bar utility that records voice, transcribes it with Google Gemini (cleaning up filler words), and copies clean text to your clipboard.
+Native macOS menu bar dictation app.
+
+VoiceInk records a short voice note, transcribes it with Gemini, copies the result to the clipboard, and auto-pastes it into the focused app when Accessibility permission is enabled.
+
+> Status: early alpha. The core dictation loop works, but the model selector, local Whisper support, and automatic silence stop are still on the roadmap.
 
 ## Features
-- **Global Hotkey**: `Ctrl+Shift+S` by default (configurable via `VOICE2CLIP_CARBON_HOTKEY`)
-- **Silence Detection**: Auto-stops after 5 seconds of silence
-- **Smart Transcription**: Removes "ehm", "uh" & formats instructions using **Gemini 2.5 Flash**
-- **History**: Access last 50 transcriptions from the menu bar
-- **Feedback**: Native system sounds for start/stop/error
 
-## Installation (Recommended)
-This installs the app to `/Applications` and configures it for daily use:
-
-```bash
-# 1. Set your API key
-cp .env.example .env
-# edit .env and set GOOGLE_API_KEY
-
-# 2. Run the installer
-./install.sh
-```
-*Follow the on-screen instructions to grant Microphone (and optionally Accessibility) permissions.*
-
-## Development
-```bash
-# Run from source
-./run.sh
-
-# Install dev tooling
-uv sync --group dev
-
-# Run quality checks
-uv run ruff check .
-uv run pyright
-uv run pytest -q
-
-# Enable git hooks
-uv run pre-commit install
-
-# Run hooks manually
-uv run pre-commit run --all-files
-```
+- Native AppKit menu bar app.
+- Global `Ctrl+Shift+S` hotkey to start and stop recording.
+- Microphone recording via AVFoundation.
+- Gemini transcription via `URLSession`.
+- Auto-copy and auto-paste into the focused text field.
+- Menu bar SF Symbol icon with idle/recording state.
+- Manual stop mode by default.
+- Settings foundation for future auto-stop after silence.
 
 ## Requirements
-- macOS 12+
-- Google AI Studio API Key ([get one here](https://aistudio.google.com/app/apikey))
-- Python 3.12+ (managed by `uv`)
 
-## Privacy & Retention
-- `VOICE2CLIP_PERSIST_MODE=normal|memory` (`memory` stores temp audio in `/tmp`)
-- `VOICE2CLIP_HISTORY_ENABLED=true|false`
-- `VOICE2CLIP_HISTORY_MAX_ITEMS=50` (default)
-- `VOICE2CLIP_HISTORY_RETENTION_DAYS=0` (`0` disables day-based pruning)
-- `VOICE2CLIP_AUDIO_RETENTION=delete|keep` (`delete` is default)
+- macOS 13+
+- Swift 6 toolchain / Xcode Command Line Tools
+- Google AI Studio API key
 
-## macOS Permissions
-- **Microphone**: required to record audio for transcription.
-- **Accessibility**: optional fallback if Carbon hotkey registration is unavailable.
+## Configuration
 
-## Tech Stack
-`PySide6` · `pyaudio` · `google-genai` · `pyperclip` · `pyinstaller`
+Create a local environment file:
 
-## Release Checklist
 ```bash
-# 1) Run quality gates
-uv run pre-commit run --all-files
-uv run pytest -q
-
-# 2) Build app (single source of truth: Voice2Clip.spec)
-uv run python build_app.py
-
-# 3) Smoke-test app bundle
-open dist/Voice2Clip.app
+cp .env.example ~/.voiceink.env
 ```
 
-- Verify microphone permission prompt appears on first recording.
-- Verify the configured global hotkey toggles recording.
-- Verify start/stop/transcribe/copy flow works in the packaged app.
+Then edit `~/.voiceink.env`:
 
+```bash
+GOOGLE_API_KEY=your_google_api_key_here
+```
+
+You can also add the Gemini key from `Settings...` in the menu bar app. Keys saved from the app are stored in the macOS Keychain. The environment file is kept as a local fallback for development.
+
+## Build
+
+```bash
+Scripts/check.sh
+swift run VoiceInkCoreSmokeTests
+swift build --product VoiceInk
+bash Scripts/build-app.sh
+```
+
+The app bundle is created at:
+
+```text
+dist/VoiceInk.app
+```
+
+## Run
+
+```bash
+open dist/VoiceInk.app
+```
+
+## Install Locally
+
+```bash
+Scripts/install.sh
+```
+
+This installs VoiceInk to:
+
+```text
+/Applications/VoiceInk.app
+```
+
+Using a stable `/Applications` path helps macOS keep Microphone and Accessibility permissions attached to the right app.
+
+## Quality
+
+```bash
+Scripts/format.sh
+Scripts/check.sh
+```
+
+`Scripts/check.sh` runs `swift-format` in strict lint mode, the smoke test executable, and the app build.
+
+## Permissions
+
+VoiceInk needs:
+
+- **Microphone** to record audio.
+- **Accessibility** to auto-paste the final transcript into the app that currently has focus.
+
+If auto-paste does not work, open the menu bar icon and choose `Request Paste Permission`, then enable `VoiceInk.app` in System Settings.
+
+## Privacy
+
+- API keys saved in the app are stored in the macOS Keychain.
+- Recordings are written to a temporary WAV file and overwritten on the next recording.
+- Transcription currently uses Gemini, so audio is sent to Google's API when you stop recording.
+- VoiceInk does not include analytics or telemetry.
+
+## Roadmap
+
+- Auto-stop after configurable silence.
+- Engine/model selector:
+  - Gemini API
+  - OpenAI transcription models
+  - Local Whisper
+- Richer settings popover.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

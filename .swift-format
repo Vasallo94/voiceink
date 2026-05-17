@@ -1,0 +1,25 @@
+{
+  "indentation" : {
+    "spaces" : 4
+  },
+  "lineLength" : 100,
+  "maximumBlankLines" : 1,
+  "respectsExistingLineBreaks" : true,
+  "rules" : {
+    "AllPublicDeclarationsHaveDocumentation" : false,
+    "AlwaysUseLowerCamelCase" : true,
+    "DoNotUseSemicolons" : true,
+    "FileScopedDeclarationPrivacy" : true,
+    "IdentifiersMustBeASCII" : true,
+    "NoBlockComments" : true,
+    "NoParensAroundConditions" : true,
+    "NoVoidReturnOnFunctionSignature" : true,
+    "OrderedImports" : true,
+    "ReturnVoidInsteadOfEmptyTuple" : true,
+    "TypeNamesShouldBeCapitalized" : true,
+    "UseEarlyExits" : false,
+    "UseExplicitNilCheckInConditions" : true,
+    "UseShorthandTypeNames" : true
+  },
+  "version" : 1
+}

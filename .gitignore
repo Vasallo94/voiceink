@@ -1,13 +1,6 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
+# Swift build outputs
+.build/
 dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
 
 # Secrets
 .env
@@ -17,14 +10,8 @@ wheels/
 # Local assistant/config
 .gemini/
 
-# Temp files
-*.wav
-*.log
+# macOS/editor noise
 .DS_Store
+*.log
+*.wav
 icon.iconset/
-
-# Tool caches
-.ruff_cache/
-.pytest_cache/
-.mypy_cache/
-.pyright/
