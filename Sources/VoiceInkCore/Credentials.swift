@@ -56,7 +56,8 @@ public struct APIKeyResolver: Sendable {
         {
             return URL(fileURLWithPath: path)
         }
-        let defaultURL = URL(fileURLWithPath: NSHomeDirectory()).appending(path: ".voiceink-sa.json")
+        let defaultURL = URL(fileURLWithPath: NSHomeDirectory()).appending(
+            path: ".voiceink-sa.json")
         return FileManager.default.fileExists(atPath: defaultURL.path) ? defaultURL : nil
     }
 

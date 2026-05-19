@@ -179,7 +179,9 @@ enum VoiceInkCoreSmokeTests {
 
     private static func testGeminiRequestUsesVertexAIEndpointForBearer() throws {
         let audio = Data("audio".utf8)
-        let request = try GeminiRequestBuilder(vertexProject: "my-project", vertexLocation: "us-central1").makeRequest(
+        let request = try GeminiRequestBuilder(
+            vertexProject: "my-project", vertexLocation: "us-central1"
+        ).makeRequest(
             auth: .bearer("my-token"),
             audioData: audio
         )
@@ -211,7 +213,8 @@ enum VoiceInkCoreSmokeTests {
         let saURL = directory.url.appending(path: "sa.json")
 
         // Minimal valid service_account JSON structure
-        let fakeKey = "-----BEGIN PRIVATE KEY-----\nMIIBVgIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA\n-----END PRIVATE KEY-----\n"
+        let fakeKey =
+            "-----BEGIN PRIVATE KEY-----\nMIIBVgIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA\n-----END PRIVATE KEY-----\n"
         let json = """
             {
               "type": "service_account",

@@ -98,7 +98,7 @@ public struct GeminiRequestBuilder: Sendable {
                                     "data": audioData.base64EncodedString(),
                                 ]
                             ],
-                        ]
+                        ],
                     ]
                 ]
             ]
