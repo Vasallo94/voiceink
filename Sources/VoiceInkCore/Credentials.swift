@@ -42,6 +42,24 @@ public struct APIKeyResolver: Sendable {
         self.envFileURLs = envFileURLs
     }
 
+    /// Resolves the path to a service account JSON file.
+    /// Resolution order:
+    ///   1. `GOOGLE_SERVICE_ACCOUNT_PATH` in `~/.voiceink.env`
+    ///   2. `GOOGLE_APPLICATION_CREDENTIALS` environment variable (standard GCP convention)
+    ///   3. `~/.voiceink-sa.json` (drop-in default location)
+    public func resolveServiceAccountURL() -> URL? {
+        if let path = readEnvValue(named: "GOOGLE_SERVICE_ACCOUNT_PATH"), !path.isEmpty {
+            return URL(fileURLWithPath: path)
+        }
+        if let path = ProcessInfo.processInfo.environment["GOOGLE_APPLICATION_CREDENTIALS"],
+            !path.isEmpty
+        {
+            return URL(fileURLWithPath: path)
+        }
+        let defaultURL = URL(fileURLWithPath: NSHomeDirectory()).appending(path: ".voiceink-sa.json")
+        return FileManager.default.fileExists(atPath: defaultURL.path) ? defaultURL : nil
+    }
+
     public func resolveGeminiAPIKey() throws -> String {
         if let secureValue = try secureStore.read(.geminiAPIKey), !secureValue.isEmpty {
             return secureValue

@@ -16,6 +16,9 @@ enum VoiceInkCoreSmokeTests {
         try testDefaultFeedbackSettingsAreEnabled()
         try testApiKeyResolverPrefersSecureStore()
         try testApiKeyResolverFallsBackToLegacyEnv()
+        try testGeminiRequestSupportsBearerAuth()
+        try testGeminiRequestUsesVertexAIEndpointForBearer()
+        try testServiceAccountCredentialsParsesJSON()
 
         print("VoiceInkCoreSmokeTests passed")
     }
@@ -78,7 +81,7 @@ enum VoiceInkCoreSmokeTests {
     private static func testGeminiRequestUsesConfiguredModelAndPrompt() throws {
         let audio = Data("audio".utf8)
         let request = try GeminiRequestBuilder(model: "gemini-2.5-flash").makeRequest(
-            apiKey: "dummy-api-key",
+            auth: .apiKey("dummy-api-key"),
             audioData: audio
         )
 
@@ -155,6 +158,83 @@ enum VoiceInkCoreSmokeTests {
         let resolver = APIKeyResolver(secureStore: secureStore, envFileURLs: [legacyEnvURL])
 
         try expect(try resolver.resolveGeminiAPIKey() == "legacy-key", "legacy env fallback")
+    }
+
+    private static func testGeminiRequestSupportsBearerAuth() throws {
+        let audio = Data("audio".utf8)
+        let request = try GeminiRequestBuilder().makeRequest(
+            auth: .bearer("my-access-token"),
+            audioData: audio
+        )
+
+        try expect(
+            request.value(forHTTPHeaderField: "Authorization") == "Bearer my-access-token",
+            "Bearer Authorization header"
+        )
+        try expect(
+            request.url?.query == nil || request.url?.query?.contains("key=") == false,
+            "Bearer auth must not include API key query param"
+        )
+    }
+
+    private static func testGeminiRequestUsesVertexAIEndpointForBearer() throws {
+        let audio = Data("audio".utf8)
+        let request = try GeminiRequestBuilder(vertexProject: "my-project", vertexLocation: "us-central1").makeRequest(
+            auth: .bearer("my-token"),
+            audioData: audio
+        )
+
+        try expect(
+            request.url?.host == "us-central1-aiplatform.googleapis.com",
+            "Vertex AI host"
+        )
+        try expect(
+            request.url?.path.contains("my-project") == true,
+            "Vertex AI project in path"
+        )
+        try expect(
+            request.url?.path.contains("us-central1") == true,
+            "Vertex AI location in path"
+        )
+        try expect(
+            request.value(forHTTPHeaderField: "Authorization") == "Bearer my-token",
+            "Bearer token in Authorization header"
+        )
+        try expect(
+            request.url?.query == nil,
+            "Vertex AI must not include API key query param"
+        )
+    }
+
+    private static func testServiceAccountCredentialsParsesJSON() throws {
+        let directory = try TemporaryDirectory()
+        let saURL = directory.url.appending(path: "sa.json")
+
+        // Minimal valid service_account JSON structure
+        let fakeKey = "-----BEGIN PRIVATE KEY-----\nMIIBVgIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA\n-----END PRIVATE KEY-----\n"
+        let json = """
+            {
+              "type": "service_account",
+              "project_id": "test-project-123",
+              "client_email": "test@test-project.iam.gserviceaccount.com",
+              "private_key": "\(fakeKey.replacingOccurrences(of: "\n", with: "\\n"))",
+              "token_uri": "https://oauth2.googleapis.com/token"
+            }
+            """
+        try json.write(to: saURL, atomically: true, encoding: .utf8)
+
+        let credentials = try ServiceAccountCredentials(from: saURL)
+
+        try expect(credentials.projectId == "test-project-123", "SA project ID parsed")
+        try expect(
+            credentials.clientEmail == "test@test-project.iam.gserviceaccount.com",
+            "SA client email parsed"
+        )
+        try expect(
+            credentials.tokenURI == "https://oauth2.googleapis.com/token",
+            "SA token URI parsed"
+        )
+        try expect(!credentials.privateKeyPEM.isEmpty, "SA private key present")
     }
 
     private static func expect(_ condition: Bool, _ message: String) throws {

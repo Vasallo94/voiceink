@@ -1,23 +1,41 @@
 import Foundation
 
 public struct GeminiClient: Sendable {
-    private let apiKey: String
+    private let authProvider: any GeminiAuthProvider
     private let requestBuilder: GeminiRequestBuilder
     private let urlSession: URLSession
 
+    public init(
+        authProvider: any GeminiAuthProvider,
+        requestBuilder: GeminiRequestBuilder = GeminiRequestBuilder(),
+        urlSession: URLSession = .shared
+    ) {
+        self.authProvider = authProvider
+        self.requestBuilder = requestBuilder
+        self.urlSession = urlSession
+    }
+
+    /// Convenience init for API-key auth (backward compatible).
     public init(
         apiKey: String,
         requestBuilder: GeminiRequestBuilder = GeminiRequestBuilder(),
         urlSession: URLSession = .shared
     ) {
-        self.apiKey = apiKey
-        self.requestBuilder = requestBuilder
-        self.urlSession = urlSession
+        self.init(
+            authProvider: APIKeyAuthProvider(
+                resolver: APIKeyResolver(
+                    secureStore: MemorySecureCredentialStore(values: [.geminiAPIKey: apiKey])
+                )
+            ),
+            requestBuilder: requestBuilder,
+            urlSession: urlSession
+        )
     }
 
     public func transcribe(audioFileURL: URL) async throws -> String {
         let audioData = try Data(contentsOf: audioFileURL)
-        let request = try requestBuilder.makeRequest(apiKey: apiKey, audioData: audioData)
+        let auth = try await authProvider.auth()
+        let request = try requestBuilder.makeRequest(auth: auth, audioData: audioData)
         let (data, response) = try await urlSession.data(for: request)
 
         if let httpResponse = response as? HTTPURLResponse,
