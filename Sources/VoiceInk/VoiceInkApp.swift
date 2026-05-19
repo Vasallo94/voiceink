@@ -19,6 +19,8 @@ final class VoiceInkApp: NSObject, NSApplicationDelegate {
     private var stopModeItem: NSMenuItem?
     private var settingsWindowController: SettingsWindowController?
     private var startedAt: Date?
+    private var serviceAccountAuthProvider: ServiceAccountAuthProvider?
+    private var serviceAccountCredentials: ServiceAccountCredentials?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -196,9 +198,8 @@ final class VoiceInkApp: NSObject, NSApplicationDelegate {
 
         Task { [audioURL, duration] in
             do {
-                let resolver = APIKeyResolver(secureStore: credentialStore)
-                let apiKey = try resolver.resolveGeminiAPIKey()
-                let text = try await GeminiClient(apiKey: apiKey).transcribe(audioFileURL: audioURL)
+                let client = try buildGeminiClient()
+                let text = try await client.transcribe(audioFileURL: audioURL)
                 try historyStore.append(text: text, duration: duration)
 
                 copyToClipboard(text)
@@ -267,6 +268,28 @@ final class VoiceInkApp: NSObject, NSApplicationDelegate {
         settingsWindowController = controller
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Builds a fully configured GeminiClient.
+    /// API key (Keychain/env) takes priority and uses the AI Studio endpoint.
+    /// Falls back to service account, which uses the Vertex AI endpoint.
+    /// The SA auth provider is cached so its token cache survives between recordings.
+    private func buildGeminiClient() throws -> GeminiClient {
+        let resolver = APIKeyResolver(secureStore: credentialStore)
+        if (try? resolver.resolveGeminiAPIKey()) != nil {
+            return GeminiClient(authProvider: APIKeyAuthProvider(resolver: resolver))
+        }
+        if let saURL = resolver.resolveServiceAccountURL() {
+            if serviceAccountAuthProvider == nil {
+                let credentials = try ServiceAccountCredentials(from: saURL)
+                serviceAccountCredentials = credentials
+                serviceAccountAuthProvider = ServiceAccountAuthProvider(credentials: credentials)
+            }
+            let project = serviceAccountCredentials?.projectId ?? ""
+            let builder = GeminiRequestBuilder(vertexProject: project)
+            return GeminiClient(authProvider: serviceAccountAuthProvider!, requestBuilder: builder)
+        }
+        throw APIKeyResolutionError.missingGeminiAPIKey
     }
 
     @objc private func quit() {
