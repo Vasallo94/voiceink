@@ -38,9 +38,18 @@ final class AutoPasteController {
     }
 
     func pasteClipboardIntoFocusedApp() -> Bool {
+        paste(into: nil)
+    }
+
+    /// Activates `targetApp` (if provided) then sends Cmd+V.
+    /// Capturing the target before the async transcription ensures the paste
+    /// reaches the right app even if the user opened the VoiceInk menu in between.
+    func paste(into targetApp: NSRunningApplication?) -> Bool {
         guard isTrusted else {
             return false
         }
+
+        targetApp?.activate(options: .activateIgnoringOtherApps)
 
         let source = CGEventSource(stateID: .combinedSessionState)
         let keyCodeForV = CGKeyCode(9)
