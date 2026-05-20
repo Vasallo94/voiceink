@@ -193,6 +193,7 @@ final class VoiceInkApp: NSObject, NSApplicationDelegate {
     private func stopAndTranscribe() {
         let audioURL = recorder.stop()
         let duration = startedAt.map { Date().timeIntervalSince($0) } ?? 0
+        let pasteTarget = NSWorkspace.shared.frontmostApplication
         feedbackController.recordingStopped()
         refreshMenu(state: "Transcribing...")
 
@@ -208,7 +209,7 @@ final class VoiceInkApp: NSObject, NSApplicationDelegate {
 
                 if settings.autoPasteFinalTranscript {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        let didPaste = self.autoPasteController.pasteClipboardIntoFocusedApp()
+                        let didPaste = self.autoPasteController.paste(into: pasteTarget)
                         self.refreshMenu(
                             state: didPaste
                                 ? "Pasted into focused app"

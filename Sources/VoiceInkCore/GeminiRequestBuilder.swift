@@ -39,14 +39,18 @@ public struct GeminiRequestBuilder: Sendable {
         self.model = model
         self.prompt = prompt
         self.vertexProject = nil
-        self.vertexLocation = "europe-west1"
+        self.vertexLocation = "global"
     }
 
     /// Vertex AI endpoint (service account / bearer auth).
+    ///
+    /// Gemini 3.x models are only available via the `global` location, which uses
+    /// `aiplatform.googleapis.com` instead of a regional host. Earlier 2.x models
+    /// support explicit EU regions (e.g. `europe-west1`, `europe-west4`).
     public init(
-        model: String = "gemini-2.5-flash",
+        model: String = "gemini-3.1-flash-lite",
         vertexProject: String,
-        vertexLocation: String = "europe-west1",
+        vertexLocation: String = "global",
         prompt: String = transcriptionPrompt
     ) {
         self.model = model
@@ -60,8 +64,13 @@ public struct GeminiRequestBuilder: Sendable {
         components.scheme = "https"
 
         if let project = vertexProject, case .bearer = auth {
-            // Vertex AI: https://{location}-aiplatform.googleapis.com/v1/projects/{project}/...
-            components.host = "\(vertexLocation)-aiplatform.googleapis.com"
+            // Gemini 3.x models require "global" location with a non-regional host.
+            // Gemini 2.x models support regional hosts (e.g. europe-west1).
+            if vertexLocation == "global" {
+                components.host = "aiplatform.googleapis.com"
+            } else {
+                components.host = "\(vertexLocation)-aiplatform.googleapis.com"
+            }
             components.path =
                 "/v1/projects/\(project)/locations/\(vertexLocation)/publishers/google/models/\(model):generateContent"
         } else {

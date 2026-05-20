@@ -18,6 +18,7 @@ enum VoiceInkCoreSmokeTests {
         try testApiKeyResolverFallsBackToLegacyEnv()
         try testGeminiRequestSupportsBearerAuth()
         try testGeminiRequestUsesVertexAIEndpointForBearer()
+        try testGeminiRequestUsesGlobalHostForGlobalLocation()
         try testServiceAccountCredentialsParsesJSON()
 
         print("VoiceInkCoreSmokeTests passed")
@@ -205,6 +206,31 @@ enum VoiceInkCoreSmokeTests {
         try expect(
             request.url?.query == nil,
             "Vertex AI must not include API key query param"
+        )
+    }
+
+    private static func testGeminiRequestUsesGlobalHostForGlobalLocation() throws {
+        let audio = Data("audio".utf8)
+        let request = try GeminiRequestBuilder(
+            model: "gemini-3.1-flash-lite",
+            vertexProject: "my-project",
+            vertexLocation: "global"
+        ).makeRequest(
+            auth: .bearer("my-token"),
+            audioData: audio
+        )
+
+        try expect(
+            request.url?.host == "aiplatform.googleapis.com",
+            "global location uses non-regional host"
+        )
+        try expect(
+            request.url?.path.contains("/locations/global/") == true,
+            "global location in path"
+        )
+        try expect(
+            request.url?.path.contains("gemini-3.1-flash-lite") == true,
+            "model in path"
         )
     }
 
