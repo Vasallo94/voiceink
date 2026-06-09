@@ -1,10 +1,15 @@
 # VoiceInk
 
-Native macOS menu bar dictation app.
+**Dictate into any macOS app — press a hotkey, speak, and your words land where the cursor is.**
 
-VoiceInk records a short voice note, transcribes it with Gemini, copies the result to the clipboard, and auto-pastes it into the focused app when Accessibility permission is enabled.
+VoiceInk is a native menu-bar dictation app. Hit `Ctrl+Shift+S`, talk, and when you stop it transcribes
+with Gemini and auto-pastes the text straight into whatever app has focus — no window to switch to, no
+copy-paste dance. I built it to scratch my own itch and now use it every day.
 
-> Status: early alpha. The core dictation loop works, but the model selector, local Whisper support, and automatic silence stop are still on the roadmap.
+It's also my hands-on way to learn Swift / AppKit: a small, real, daily-driver app rather than a tutorial.
+
+> **Status: early alpha** — the core dictation loop is solid and in daily use. Next up: a model/engine
+> selector, fully on-device transcription with local Whisper (no audio leaves your Mac), and auto-stop on silence.
 
 ## Features
 
